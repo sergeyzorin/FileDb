@@ -1,0 +1,13 @@
+{
+  "name": "simple-file-db",
+  "description": "very simple database implemented via serialized json file. Has simple API and suitable for prototypes and small utilites",
+  "version": "0.0.1",
+  "dependencies": {
+    "lodash": "*"
+  },
+  "devDependencies": {
+    "chai": "*",
+    "chai-as-promised": "*",
+    "mocha": "^2.3.4"
+  }
+}
