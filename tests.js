@@ -3,7 +3,7 @@ var chaiAsPromised = require("chai-as-promised");
 chai.use(chaiAsPromised);
 const assert = chai.assert;
 
-const fileDb = require("./fileDb");
+const fileDb = require("./index.js");
 const fs = require("fs");
 
 describe( "fileDb test", function () {
