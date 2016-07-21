@@ -47,7 +47,8 @@ describe( "fileDb test", function () {
           assert.isOk(item);
           assert.equal(item.name, "first")
           assert.isOk( item.id )
-          assert.isTrue( fs.existsSync(fname) );
+          assert.isTrue( fs.existsSync(fname), "no dbfile found: " + fname );
+          assert.isFalse( fs.existsSync(fname + ".temp"), "temp file was not removed" );
 
           //load back
           let db2 = fileDb.loadSync( fname );
@@ -72,6 +73,7 @@ describe( "fileDb test", function () {
             assert.isOk( i.id );
           }
           assert.isTrue( fs.existsSync(fname) );
+          assert.isFalse( fs.existsSync(fname + ".temp"), "temp file was not removed" );
 
           //load back
           let db2 = fileDb.loadSync( fname );
@@ -91,16 +93,21 @@ describe( "fileDb test", function () {
 
       collection.store( items )
         .then(function () {
-          db.save().catch( err => done(err) );
-          db.save().catch( err => done(err) );
-          db.save().catch( err => done(err) );
-          db.save().catch( err => done(err) );
-          db.save().catch( err => done(err) );
-          db.save().catch( err => done(err) );
-          db.save().catch( err => done(err) );
+          var arr = [
+            db.save().catch( err => done(err) ),
+            db.save().catch( err => done(err) ),
+            db.save().catch( err => done(err) ),
+            db.save().catch( err => done(err) ),
+            db.save().catch( err => done(err) ),
+            db.save().catch( err => done(err) ),
+            db.save().catch( err => done(err) )
+          ];
 
-          db.save().then(function () {
+          Promise.all(arr)
+            .then( () => db.save() )
+            .then(function () {
             assert.isTrue( fs.existsSync(fname) );
+            assert.isFalse( fs.existsSync(fname + ".temp"), "temp file was not removed" );
             done();
           }).catch( err => done(err) );
         }).catch( err => done(err) );

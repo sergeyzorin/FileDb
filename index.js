@@ -76,17 +76,38 @@ DataBase.prototype._saveInner = function() {
   }
   var fileContent = JSON.stringify( saveData );
   var savePath = this.path;
+  let tempFile = savePath + ".temp";
 
+  return promiseWriteFile( tempFile, fileContent)
+    .then( () => promiseMoveFile( tempFile, savePath ))
+    .catch( function (err) {
+      console.error( "db save err: ", err );
+    })
+}
+
+function promiseWriteFile(path, content) {
   return new Promise( function( resolve, reject ) {
-    fs.writeFile( savePath, fileContent, function( err ) {
+    fs.writeFile( path, content, function( err ) {
       if ( err ) {
-        console.error( "db save err: ", err );
         reject( err );
       } else {
-        resolve();
+        resolve(path);
       }
     } );
   } );
+}
+
+function promiseMoveFile(fromPath, toPath) {
+  return new Promise( function (resolve, reject) {
+    fs.rename( fromPath, toPath, function( err ) {
+      if ( err ) {
+        reject( err );
+      } else {
+        // console.log("renamed", fromPath, toPath );
+        resolve(toPath);
+      }
+    } );
+  })
 }
 
 /**
