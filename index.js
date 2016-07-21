@@ -46,26 +46,15 @@ DataBase.prototype.save = function() {
   //saving data already in process. Must set flag to save after this will be done
   if ( this._saveDataPromise ) {
     this._needToSave = true;
-    //right now - no new save. It will be done later, in background.
-    //TODO: make next-save also a promise, that will be returned here and for later calls
-    //and will start only after current save done
-    return Promise.resolve();
   } else {
-    //start save. On complete check - if other requests were received - save again.
-    this._saveDataPromise = this._saveInner()
-      .then( function() {
-        self._saveDataPromise = null;
-        if ( self._needToSave ) {
-          self._needToSave = false;
-          self.save();
-        }
-      } );
-    return this._saveDataPromise;
+    this._saveDataPromise = this._saveInner();
   }
+  return this._saveDataPromise;
 };
 
 /**
  * Inner implementation of save data. Creates a promise over fs.writeFile
+ * after save it checks _needToSave flag and if set - start save again
  * @return {[type]} [description]
  */
 DataBase.prototype._saveInner = function() {
@@ -77,37 +66,47 @@ DataBase.prototype._saveInner = function() {
   var fileContent = JSON.stringify( saveData );
   var savePath = this.path;
   let tempFile = savePath + ".temp";
+  let self = this;
 
-  return promiseWriteFile( tempFile, fileContent)
-    .then( () => promiseMoveFile( tempFile, savePath ))
-    .catch( function (err) {
+  return promiseWriteFile( tempFile, fileContent )
+    .then( () => promiseMoveFile( tempFile, savePath ) )
+    .then( checkSaveNeeded.bind( this ) )
+    .catch( function( err ) {
       console.error( "db save err: ", err );
-    })
+    } )
 }
 
-function promiseWriteFile(path, content) {
+function checkSaveNeeded( savedAtPath ) {
+  if ( this._needToSave ) {
+    this._needToSave = true;
+    return this._saveInner();
+  }
+  return savedAtPath;
+}
+
+function promiseWriteFile( path, content ) {
   return new Promise( function( resolve, reject ) {
     fs.writeFile( path, content, function( err ) {
       if ( err ) {
         reject( err );
       } else {
-        resolve(path);
+        resolve( path );
       }
     } );
   } );
 }
 
-function promiseMoveFile(fromPath, toPath) {
-  return new Promise( function (resolve, reject) {
+function promiseMoveFile( fromPath, toPath ) {
+  return new Promise( function( resolve, reject ) {
     fs.rename( fromPath, toPath, function( err ) {
       if ( err ) {
         reject( err );
       } else {
         // console.log("renamed", fromPath, toPath );
-        resolve(toPath);
+        resolve( toPath );
       }
     } );
-  })
+  } )
 }
 
 /**
@@ -136,7 +135,7 @@ DataBase.prototype.createCollection = function( name, data ) {
 function Collection( db, data ) {
   this.data = data || [];
   this.mapById = new Map(); //TODO: make common 'indices' field to allow multiple unique indices
-  for( var item of this.data ){
+  for ( var item of this.data ) {
     this.mapById.set( item.id, item );
   }
   this.db = db;
@@ -182,7 +181,7 @@ Collection.prototype.some = function( predicate ) {
 };
 
 Collection.prototype.getById = function( id ) {
-  return _.clone( this.mapById.get(id) );
+  return _.clone( this.mapById.get( id ) );
 };
 
 /**
@@ -267,8 +266,8 @@ Collection.prototype._deleteItemById = function( id ) {
  * @return {Array}                Promise, resolved to the list of updated predictes
  */
 Collection.prototype.update = function( newFieldValues, predicate ) {
-  if( newFieldValues.hasProperty( "id" ) ){
-    throw new Error("id field can't be updated via update method");
+  if ( newFieldValues.hasProperty( "id" ) ) {
+    throw new Error( "id field can't be updated via update method" );
   }
   var items = _.filter( this.getList(), predicate );
   var updatedItems = items.map( i => _.assign( {}, i, newFieldValues ) );
@@ -276,11 +275,11 @@ Collection.prototype.update = function( newFieldValues, predicate ) {
 }
 
 Collection.prototype.updateById = function( newFieldValues, id ) {
-  if( newFieldValues.hasProperty( "id" ) ){
-    throw new Error("id field can't be updated via update method");
+  if ( newFieldValues.hasProperty( "id" ) ) {
+    throw new Error( "id field can't be updated via update method" );
   }
-  let item = this.getById(id);
-  return this.store( _.assign( {}, item, newFieldValues) );
+  let item = this.getById( id );
+  return this.store( _.assign( {}, item, newFieldValues ) );
 };
 
 //get id greater than any already in collection
@@ -297,10 +296,10 @@ function getNextId( list ) {
  * @return {[type]}         [description]
  */
 function buildDb( path, json ) {
-	var data = json ? JSON.parse( json ) : {};
-	var db = new DataBase( path );
-	_.keys( data ).forEach( key => db.createCollection( key, data[key] ) );
-	return db;
+  var data = json ? JSON.parse( json ) : {};
+  var db = new DataBase( path );
+  _.keys( data ).forEach( key => db.createCollection( key, data[ key ] ) );
+  return db;
 }
 
 /**
@@ -309,16 +308,16 @@ function buildDb( path, json ) {
  * @return {[type]}      [description]
  */
 function loadSync( path ) {
-	try {
-		jsonStr = fs.readFileSync( path, 'utf-8' );
-		return buildDb( path, jsonStr );
-	} catch( err ) {
-		if( err.code === "ENOENT" ) {
-			return buildDb( path );
-		} else {
-			throw err;
-		}
-	}
+  try {
+    jsonStr = fs.readFileSync( path, 'utf-8' );
+    return buildDb( path, jsonStr );
+  } catch ( err ) {
+    if ( err.code === "ENOENT" ) {
+      return buildDb( path );
+    } else {
+      throw err;
+    }
+  }
 }
 
 /**
@@ -327,17 +326,17 @@ function loadSync( path ) {
  * @return {[type]}      [description]
  */
 function load( path ) {
-  return new Promise( function (resolve, reject) {
-    fs.readFile( path, 'utf-8', function (err, json) {
-      if( err && err.code === "ENOENT" ){
+  return new Promise( function( resolve, reject ) {
+    fs.readFile( path, 'utf-8', function( err, json ) {
+      if ( err && err.code === "ENOENT" ) {
         resolve( buildDb( path ) );
       }
-      if( err ){
-        reject(err);
+      if ( err ) {
+        reject( err );
       }
-      resolve( )
-    });
-  })
+      resolve()
+    } );
+  } )
 }
 
-module.exports = {load, loadSync}
+module.exports = { load, loadSync }

@@ -13,11 +13,11 @@ describe( "fileDb test", function () {
       fs.unlinkSync( fname );
     }
   });
-  // after(function() {
-  //   if( fs.existsSync(fname) ){
-  //     fs.unlinkSync( fname );
-  //   }
-  // });
+  after(function() {
+    if( fs.existsSync(fname) ){
+      fs.unlinkSync( fname );
+    }
+  });
 
   describe( "Load database", function () {
     it("should create db if file not exists", function () {
